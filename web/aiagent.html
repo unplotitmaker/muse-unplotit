@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aiagent.unplotit — Turn Any Chart Image into CSV Data | Free Chart Digitizer</title>
+<meta name="description" content="aiagent.unplotit is a free online chart digitizer. Upload or paste any chart, graph or plot image and extract its data points to CSV in seconds. No signup.">
+<meta name="keywords" content="chart digitizer, extract data from chart, chart to csv, graph digitizer, plot digitizer, get data from image, digitize graph online">
+<link rel="canonical" href="https://www.unplotit.com/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="aiagent.unplotit">
+<meta property="og:title" content="aiagent.unplotit — Turn Any Chart Image into CSV Data">
+<meta property="og:description" content="Paste a chart screenshot, get a CSV of its data points. Free online chart digitizer, no signup.">
+<meta property="og:url" content="https://www.unplotit.com/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="aiagent.unplotit — Turn Any Chart Image into CSV Data">
+<meta name="twitter:description" content="Paste a chart screenshot, get a CSV of its data points. Free, no signup.">
+<style>
+  :root { --blue:#1a73e8; --line:#ddd; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f5f7; color:#222; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { padding:16px 24px; background:#fff; border-bottom:1px solid #e2e2e2; }
+  header h1 { font-size:20px; margin:0 0 6px; }
+  header h1 .dot { color:var(--blue); }
+  header p { margin:0; font-size:13px; color:#666; max-width:980px; line-height:1.6; }
+  .steps { display:flex; gap:8px; margin-top:10px; }
+  .steps button { font-size:13px; font-weight:600; padding:6px 14px; border-radius:20px;
+    border:1px solid #ccc; background:#fff; color:#555; cursor:pointer; }
+  .steps button.cur { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .steps button.done { border-color:var(--blue); color:var(--blue); }
+  main { max-width:1400px; margin:16px auto 40px; padding:0 16px; }
+  footer.site { max-width:1400px; margin:0 auto 32px; padding:0 16px; font-size:12px; color:#888; }
+  footer.site a { color:#1a73e8; }
+  section.card { background:#fff; border:1px solid var(--line); padding:24px; }
+  section.card h2 { margin:0 0 6px; font-size:18px; }
+  section.card p.hint { margin:0 0 16px; font-size:13px; color:#666; line-height:1.6; max-width:900px; }
+  [hidden] { display:none !important; }
+
+  /* screen-reader-only: keeps the file input in the accessibility tree */
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+
+  /* ---- Step 1: upload ---- */
+  #dropzone { border:2px dashed #bbb; border-radius:12px; padding:56px 24px; text-align:center;
+    background:#fafbfc; transition:background .15s,border-color .15s; }
+  #dropzone.over { border-color:var(--blue); background:#eef4fd; }
+  #dropzone .big { font-size:17px; font-weight:600; margin:0 0 8px; }
+  #dropzone .sub { font-size:13px; color:#666; margin:0 0 20px; }
+  .btn { font-size:14px; font-weight:600; color:#111; padding:10px 18px; border-radius:6px;
+    border:1px solid #ccc; background:#fff; cursor:pointer; display:inline-block; }
+  .btn.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .btn.on { background:#e8f0fe; border-color:var(--blue); color:var(--blue); }
+  .btn:disabled { opacity:.55; cursor:wait; }
+  label.btn { cursor:pointer; }
+  #demoBtn { margin-left:8px; }
+  #uploadError { color:#b00020; font-size:13px; margin-top:12px; min-height:18px; }
+
+  /* ---- Step 2: calibrate ---- */
+  .calib-wrap { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
+  @media (max-width:1000px){ .calib-wrap { grid-template-columns:1fr; } }
+  #calibStage { position:relative; background:#fff; border:1px solid var(--line); }
+  #calibCanvas { display:block; width:100%; height:auto; user-select:none; }
+  #calibSvg { position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+  #calibSvg.pick { cursor:copy; }
+  .calib-panel { background:#fff; border:1px solid var(--line); padding:16px; }
+  .calib-panel fieldset { border:1px solid #e4e4e4; border-radius:8px; padding:10px 12px 14px; margin:0 0 12px; }
+  .calib-panel legend { font-size:13px; font-weight:700; padding:0 6px; }
+  .frow { display:flex; gap:8px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+  .frow label { font-size:13px; color:#444; min-width:64px; }
+  .frow input[type="number"], .frow input[type="text"], .frow input[type="month"] {
+    font-size:13px; padding:6px 8px; border:1px solid #ccc; border-radius:5px; width:110px; }
+  .frow input[type="text"].wide { width:100%; }
+  .frow input[type="month"] { width:150px; }
+  .ro { font-size:12.5px; color:#333; background:#f6f8fb; border:1px solid #e4e4e4;
+    border-radius:5px; padding:6px 8px; font-variant-numeric:tabular-nums; }
+  .note { font-size:12px; color:#777; line-height:1.5; margin:6px 0 0; }
+  #detectPreview { display:block; width:100%; height:auto; border:1px solid #e4e4e4;
+    border-radius:6px; margin-top:8px; background:#fff; }
+  #calibError { color:#b00020; font-size:13px; margin:10px 0 0; min-height:18px; }
+  #calibActions { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  #prevReadout { font-size:13px; color:#1a6b1a; margin-top:8px; min-height:18px; }
+  .checkline { display:flex; gap:8px; align-items:center; font-size:13px; margin:6px 0; }
+
+  /* ---- Step 3: workspace (same look as the single-chart correction page) ---- */
+  #wsHead h2 { margin:0 0 4px; font-size:18px; }
+  #wsHead p { margin:0 0 12px; font-size:13px; color:#666; max-width:980px; line-height:1.6; }
+  #wsStage { position:relative; background:#fff; border:1px solid var(--line); }
+  #wsStage img { display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }
+  #wsOverlay { position:absolute; inset:0; width:100%; height:100%; }
+  #wsOverlay circle { cursor:grab; touch-action:none; outline:none; }
+  #wsOverlay circle:active { cursor:grabbing; }
+  #wsOverlay circle:focus { stroke:#111; stroke-width:2.5; }
+  #wsTip { position:absolute; display:none; background:#111; color:#fff; font-size:12px;
+    padding:4px 8px; border-radius:4px; pointer-events:none; white-space:nowrap; z-index:5; }
+  #wsPanel { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--line); padding:12px 16px; }
+  .grouplabel { font-size:13px; color:#666; margin-left:8px; }
+  #wsReadout { font-size:14px; min-width:280px; font-variant-numeric:tabular-nums; }
+  #wsCount { font-size:13px; color:#b26a00; font-weight:600; }
+  #wsPanel .btn { padding:8px 14px; }
+  kbd { background:#eee; border:1px solid #ccc; border-radius:3px; padding:0 4px; font-size:12px; }
+  #backBtn { margin-top:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>aiagent<span class="dot">.unplotit</span> &mdash; Chart Data Extractor</h1>
+  <p>Turn a chart image into CSV data. Upload a line chart, calibrate its axes, extract the
+  numbers, then drag-correct any point before downloading.</p>
+  <nav class="steps" aria-label="Progress">
+    <button id="nav1" class="cur" type="button">1 &middot; Upload</button>
+    <button id="nav2" type="button">2 &middot; Calibrate</button>
+    <button id="nav3" type="button" disabled>3 &middot; Correct &amp; download</button>
+  </nav>
+</header>
+<main>
+
+<!-- ================= STEP 1 : UPLOAD ================= -->
+<section class="card" id="step1" aria-labelledby="s1h">
+  <h2 id="s1h">1. Upload your chart</h2>
+  <p class="hint">Works with any time-series line chart (PNG, JPG, GIF, WebP). Everything runs
+  in your browser &mdash; the image never leaves your computer.</p>
+  <div id="dropzone" role="region" aria-label="Image drop zone">
+    <p class="big">Drop a chart image here, paste it, or browse</p>
+    <p class="sub">Ctrl/&#8984;+V pastes a screenshot straight from your clipboard.</p>
+    <label class="btn primary" for="upfile">Browse&hellip;</label>
+    <input type="file" id="upfile" class="sr-only" accept="image/*" aria-label="Choose a chart image file">
+    <button class="btn" id="demoBtn" type="button">Try a demo chart</button>
+    <div id="uploadError" role="alert"></div>
+  </div>
+</section>
+
+<!-- ================= STEP 2 : CALIBRATE ================= -->
+<section class="card" id="step2" hidden aria-labelledby="s2h">
+  <h2 id="s2h">2. Calibrate the chart</h2>
+  <p class="hint"><b>Drag on the image</b> to draw a rectangle around the plot&rsquo;s data region
+  (the area the line actually travels in). Corners resize it, dragging inside moves it, and the
+  dashed orange line is the legend guard &mdash; drag it below any legend swatch or title sitting
+  inside the plot. Then fill in the axis values and date range below.</p>
+  <div class="calib-wrap">
+    <div id="calibStage">
+      <canvas id="calibCanvas"></canvas>
+      <svg id="calibSvg" role="application" aria-label="Chart calibration overlay"></svg>
+    </div>
+    <div class="calib-panel">
+      <fieldset>
+        <legend>Plot area (pixels)</legend>
+        <div class="frow">
+          <label for="fx0">Left x0</label><input type="number" id="fx0" step="1" min="0">
+          <label for="fx1">Right x1</label><input type="number" id="fx1" step="1" min="0">
+        </div>
+        <div class="frow">
+          <label for="fyt">Top y</label><input type="number" id="fyt" step="1" min="0">
+          <label for="fyb">Bottom y</label><input type="number" id="fyb" step="1" min="0">
+        </div>
+        <p class="note">Tip: zoom your browser in for precise placement; the fields let you nudge exact pixels.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Legend guard</legend>
+        <div class="frow">
+          <label for="fscan">Ignore above y</label><input type="number" id="fscan" step="1" min="0">
+        </div>
+        <p class="note">Pixels above this line are ignored &mdash; use it to exclude a legend swatch.
+        The true line must never go above it; it defaults to the rectangle top.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Y-axis values</legend>
+        <div class="frow">
+          <label for="vTop">Value at top</label><input type="number" id="vTop" step="any">
+        </div>
+        <div class="frow">
+          <label for="vBottom">Value at bottom</label><input type="number" id="vBottom" step="any">
+        </div>
+        <div class="frow"><span class="ro" id="slopeReadout" aria-live="polite">&mdash;</span></div>
+        <p class="note">Read two grid labels off the y-axis (e.g. 120 at the top gridline, 40 at the bottom).</p>
+      </fieldset>
+      <fieldset>
+        <legend>Date range</legend>
+        <div class="frow">
+          <label for="d0">Start</label><input type="month" id="d0">
+          <label for="d1">End</label><input type="month" id="d1">
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Line color</legend>
+        <div class="checkline">
+          <input type="checkbox" id="autoColor" checked>
+          <label for="autoColor">Auto-detect line color</label>
+        </div>
+        <div class="frow">
+          <button class="btn" id="pickBtn" type="button">Click the chart line to pick its color</button>
+        </div>
+        <div class="frow">
+          <label for="hexColor">Hex</label>
+          <input type="text" id="hexColor" placeholder="#1a73e8" maxlength="7" spellcheck="false">
+        </div>
+        <canvas id="detectPreview" aria-label="Line detection preview"></canvas>
+        <p class="note">Detected line pixels show in magenta. If gridlines or fills light up too,
+        pick the line color by clicking it, or type its hex value.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Chart name</legend>
+        <div class="frow">
+          <label for="chartName" class="sr-only">Chart name</label>
+          <input type="text" id="chartName" class="wide" maxlength="120">
+        </div>
+        <p class="note">Used for the page header and the downloaded CSV filename.</p>
+      </fieldset>
+      <div id="calibActions">
+        <button class="btn" id="previewBtn" type="button">Preview extraction</button>
+        <button class="btn primary" id="digitizeBtn" type="button">Digitize &rarr;</button>
+      </div>
+      <div id="calibError" role="alert"></div>
+      <div id="prevReadout" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STEP 3 : WORKSPACE (built by JS) ================= -->
+<section class="card" id="step3" hidden aria-labelledby="s3h">
+  <div id="wsRoot"></div>
+  <button class="btn" id="backBtn" type="button">&larr; Back to calibration</button>
+</section>
+
+</main>
+<footer class="site">
+  <p><strong>aiagent.unplotit</strong> — turn any chart image into CSV data. Free online chart digitizer: extract data points from graphs, plots and figures in seconds, no signup. <a href="https://www.unplotit.com/">www.unplotit.com</a></p>
+</footer>
+<script>
+'use strict';
+/* =====================================================================
+   aiagent.unplotit — generic chart digitizer (single self-contained file).
+   Pure analysis logic below is a direct port of generate.py; it has no
+   DOM dependencies so it can be unit-tested in node.
+   ===================================================================== */
+
+/* ---------- pure logic (DOM-free) ---------- */
+function monthsBetween(d0, d1){
+  return (d1.y - d0.y) * 12 + (d1.m - d0.m) + 1;
+}
+function addMonths(d, k){
+  const m = d.m - 1 + k;
+  return { y: d.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 + 1 };
+}
+function fmtDate(d){
+  return d.y + '-' + String(d.m).padStart(2, '0') + '-01';
+}
+// Line-color detector, ported from generate.py:
+// auto: (mx-mn)>70 && mx>=60 && mn<=215  (any saturated line color, light or dark bg)
+// specific: squared RGB distance < 10000
+function makeIsLine(mode, lr, lg, lb){
+  if (mode === 'auto'){
+    return function(r, g, b){
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      return (mx - mn) > 70 && mx >= 60 && mn <= 215;
+    };
+  }
+  return function(r, g, b){
+    const dr = r - lr, dg = g - lg, db = b - lb;
+    return dr * dr + dg * dg + db * db < 10000;
+  };
+}
+// Per-column median of line pixels in [yscan, yBottom].
+// Columns that are >80% line pixels are vertical axes/gridlines drawn in the
+// line color: excluded with a ±3 neighbor margin (their tick marks outnumber
+// data pixels); gaps fill from neighbors, forward then backward.
+function buildColumnMedians(isLine, getPx, x0, x1, yscan, yBottom){
+  const n = x1 - x0 + 1;
+  const yrange = yBottom - yscan + 1;
+  const dead = new Uint8Array(n);
+  for (let xi = 0; xi < n; xi++){
+    const x = x0 + xi;
+    let cnt = 0;
+    for (let y = yscan; y <= yBottom; y++){
+      const p = getPx(x, y);
+      if (isLine(p[0], p[1], p[2])) cnt++;
+    }
+    if (cnt > 0.8 * yrange){
+      for (let k = -3; k <= 3; k++){
+        const j = xi + k;
+        if (j >= 0 && j < n) dead[j] = 1;
+      }
+    }
+  }
+  const med = new Array(n).fill(null);
+  for (let xi = 0; xi < n; xi++){
+    if (dead[xi]) continue;
+    const x = x0 + xi, ys = [];
+    for (let y = yscan; y <= yBottom; y++){
+      const p = getPx(x, y);
+      if (isLine(p[0], p[1], p[2])) ys.push(y);
+    }
+    if (ys.length){
+      ys.sort((a, b) => a - b);
+      med[xi] = ys[ys.length >> 1];
+    }
+  }
+  let last = null;
+  for (let xi = 0; xi < n; xi++){
+    if (med[xi] === null) med[xi] = last; else last = med[xi];
+  }
+  last = null;
+  for (let xi = n - 1; xi >= 0; xi--){
+    if (med[xi] === null) med[xi] = last; else last = med[xi];
+  }
+  const out = new Float32Array(n);
+  for (let xi = 0; xi < n; xi++) out[xi] = med[xi] === null ? NaN : med[xi];
+  return out;
+}
+// ±3px box smoothing of column medians (generate.py/template COLS).
+function smoothCols(med){
+  const n = med.length, sm = new Float32Array(n);
+  for (let xi = 0; xi < n; xi++){
+    let s = 0, c = 0;
+    for (let k = -3; k <= 3; k++){
+      const j = xi + k;
+      if (j >= 0 && j < n && !isNaN(med[j])){ s += med[j]; c++; }
+    }
+    sm[xi] = c ? s / c : NaN;
+  }
+  return sm;
+}
+// Monthly sampling, identical to generate.py:
+// x = round(x0 + i/(n-1)*(x1-x0)); median of cols at x-2..x+2; rounded to 2dp.
+function monthlyRows(cols, st){
+  const n = cols.length;
+  const N = monthsBetween(st.d0, st.d1);
+  const rows = [];
+  for (let i = 0; i < N; i++){
+    const x = N === 1 ? st.x0 : Math.round(st.x0 + i / (N - 1) * (st.x1 - st.x0));
+    const ys = [];
+    for (let k = -2; k <= 2; k++){
+      const xi = Math.max(0, Math.min(n - 1, x + k - st.x0));
+      const v = cols[xi];
+      if (!isNaN(v)) ys.push(v);
+    }
+    ys.sort((a, b) => a - b);
+    const y = ys.length ? ys[ys.length >> 1] : NaN;
+    rows.push({
+      date: fmtDate(addMonths(st.d0, i)),
+      value: isNaN(y) ? NaN : Math.round((st.slope * y + st.intercept) * 100) / 100
+    });
+  }
+  return rows;
+}
+// Extrema finder, ported from template.html: WL=10 local window, WB=60
+// prominence window, MINP=0.6 prominence threshold; tip refined on raw
+// (unsmoothed) medians so sharp tips are not blunted.
+function findExtremaCore(cols, raw, vOf, x0){
+  const n = cols.length, v = new Float32Array(n);
+  for (let i = 0; i < n; i++) v[i] = vOf(cols[i]);
+  const WL = 10, WB = 60, MINP = 0.6, res = [];
+  for (let x = WL; x < n - WL; x++){
+    let mx = true, mn = true;
+    for (let k = 1; k <= WL; k++){
+      if (v[x - k] >= v[x] || v[x + k] >= v[x]) mx = false;
+      if (v[x - k] <= v[x] || v[x + k] <= v[x]) mn = false;
+      if (!mx && !mn) break;
+    }
+    if (!mx && !mn) continue;
+    let lo = v[x], hi = v[x];
+    for (let k = 1; k <= WB; k++){
+      if (x - k >= 0){ const a = v[x - k]; if (a < lo) lo = a; if (a > hi) hi = a; }
+      if (x + k < n){ const b = v[x + k]; if (b < lo) lo = b; if (b > hi) hi = b; }
+    }
+    if ((mx ? v[x] - lo : hi - v[x]) >= MINP){
+      let bx = x;
+      for (let k = -6; k <= 6; k++){
+        const j = x + k;
+        if (j < 0 || j >= n) continue;
+        const rv = vOf(raw[j]), bv = vOf(raw[bx]);
+        if (mx ? rv > bv : rv < bv) bx = j;
+      }
+      res.push({
+        x: x0 + bx,
+        value: Math.round(vOf(raw[bx]) * 100) / 100,
+        type: mx ? 'peak' : 'trough'
+      });
+    }
+  }
+  return res;
+}
+
+/* ---------- small DOM helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const SVGNS = 'http://www.w3.org/2000/svg'; // DOM namespace id, not a network fetch
+
+/* ---------- app state (all coordinates in canvas pixels) ---------- */
+const S = {
+  imgW: 0, imgH: 0,
+  imgCanvas: null,       // chart at analysis resolution (<=2600 wide)
+  rect: null,            // {x0,x1,yt,yb}
+  yscan: null, yscanAuto: true,
+  slope: null, intercept: null,
+  d0: null, d1: null,     // {y,m}
+  lineMode: 'auto', lr: 0, lg: 0, lb: 0,
+  name: '',
+  analysisCache: null, analysisKey: ''
+};
+
+/* ---------- step navigation ---------- */
+function showStep(n){
+  [1, 2, 3].forEach(i => { $('step' + i).hidden = i !== n; });
+  $('nav1').className = n === 1 ? 'cur' : 'done';
+  $('nav2').className = n === 2 ? 'cur' : (S.imgCanvas ? 'done' : '');
+  $('nav3').className = n === 3 ? 'cur' : '';
+  $('nav3').disabled = n !== 3;
+  window.scrollTo(0, 0);
+}
+$('nav1').addEventListener('click', () => showStep(1));
+$('nav2').addEventListener('click', () => { if (S.imgCanvas) showStep(2); });
+
+/* =====================================================================
+   STEP 1 — upload
+   ===================================================================== */
+function showUploadError(msg){ $('uploadError').textContent = msg || ''; }
+
+function handleFile(file){
+  showUploadError('');
+  if (!file || !file.type || file.type.indexOf('image/') !== 0){
+    showUploadError('Please choose an image file (PNG, JPG, GIF, WebP).');
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    URL.revokeObjectURL(url);
+    const base = (file.name || 'chart').replace(/\.[^.]+$/, '');
+    setupImage(im, base);
+  };
+  im.onerror = () => {
+    URL.revokeObjectURL(url);
+    showUploadError('Could not read that image file.');
+  };
+  im.src = url;
+}
+
+// Draw source (Image or canvas) into the analysis canvas, downscaling to
+// 2600 wide if needed; everything downstream works in these canvas pixels.
+function setupImage(source, name, prefill){
+  const nw = source.naturalWidth || source.width;
+  const nh = source.naturalHeight || source.height;
+  const MAXW = 2600;
+  const sc = nw > MAXW ? MAXW / nw : 1;
+  const W = Math.round(nw * sc), H = Math.round(nh * sc);
+  const cv = $('calibCanvas');
+  cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#ffffff';
+  cx.fillRect(0, 0, W, H);
+  cx.drawImage(source, 0, 0, W, H);
+  Object.assign(S, {
+    imgW: W, imgH: H, imgCanvas: cv,
+    rect: null, yscan: null, yscanAuto: true,
+    slope: null, intercept: null, d0: null, d1: null,
+    lineMode: 'auto', lr: 0, lg: 0, lb: 0,
+    name: name || 'chart',
+    analysisCache: null, analysisKey: ''
+  });
+  $('calibSvg').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  $('calibSvg').setAttribute('preserveAspectRatio', 'none');
+  $('chartName').value = S.name;
+  $('autoColor').checked = true;
+  $('hexColor').value = '';
+  $('d0').value = ''; $('d1').value = '';
+  $('vTop').value = ''; $('vBottom').value = '';
+  $('prevReadout').textContent = '';
+  $('calibError').textContent = '';
+  pickMode = false;
+  $('calibSvg').classList.remove('pick');
+  $('pickBtn').classList.remove('on');
+  $('pickBtn').textContent = 'Click the chart line to pick its color';
+  if (prefill){
+    if (prefill.rect) setRect(prefill.rect, true);
+    if (prefill.yscan != null){ S.yscan = prefill.yscan; S.yscanAuto = false; }
+    if (prefill.vTop != null) $('vTop').value = prefill.vTop;
+    if (prefill.vBottom != null) $('vBottom').value = prefill.vBottom;
+    if (prefill.d0){ $('d0').value = prefill.d0; S.d0 = parseMonth(prefill.d0); }
+    if (prefill.d1){ $('d1').value = prefill.d1; S.d1 = parseMonth(prefill.d1); }
+    syncFieldsFromState();
+    updateSlopeReadout();
+  }
+  renderCalib();
+  updateDetectPreview();
+  showStep(2);
+}
+
+$('upfile').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+  e.target.value = ''; // allow re-selecting the same file
+});
+document.addEventListener('paste', e => {
+  if ($('step1').hidden) return; // only hijack paste on the upload step
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for (const it of items){
+    if (it.type && it.type.indexOf('image/') === 0){
+      e.preventDefault();
+      handleFile(it.getAsFile());
+      return;
+    }
+  }
+});
+const dz = $('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('over');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+/* ---------- demo chart: saturated blue noisy sine on light-gray grid ---------- */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function makeDemoChart(){
+  const W = 900, H = 500;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, W, H);
+  const L = 70, R = 880, T = 30, B = 440;
+  const vTop = 120, vBot = 40;
+  const yOfV = v => T + (vTop - v) / (vTop - vBot) * (B - T);
+  // light-gray grid (unsaturated: invisible to the auto detector)
+  g.strokeStyle = '#e6e6e6'; g.lineWidth = 1;
+  g.fillStyle = '#666'; g.font = '12px system-ui, sans-serif';
+  g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (let v = 40; v <= 120; v += 20){
+    const y = yOfV(v);
+    g.beginPath(); g.moveTo(L, y); g.lineTo(R, y); g.stroke();
+    g.fillText(String(v), L - 8, y);
+  }
+  // vertical gridlines + month labels
+  const rnd = mulberry32(20260924);
+  const NPTS = 24;
+  const vals = [];
+  for (let i = 0; i < NPTS; i++)
+    vals.push(80 + 24 * Math.sin(2 * Math.PI * i / 12) + (rnd() - 0.5) * 10);
+  const xOfI = i => L + i / (NPTS - 1) * (R - L);
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  const mon = ['Jan', 'Apr', 'Jul', 'Oct'];
+  for (let i = 0; i < NPTS; i += 3){
+    const x = xOfI(i);
+    g.strokeStyle = '#eeeeee';
+    g.beginPath(); g.moveTo(x, T); g.lineTo(x, B); g.stroke();
+    g.fillStyle = '#666';
+    g.fillText(mon[(i / 3) % 4] + ' ' + (i < 12 ? '20' : '21'), x, B + 8);
+  }
+  // axes
+  g.strokeStyle = '#888'; g.lineWidth = 1.5;
+  g.strokeRect(L, T, R - L, B - T);
+  // saturated blue data line (survives the auto detector)
+  g.strokeStyle = '#1a66ff'; g.lineWidth = 3; g.lineJoin = 'round';
+  g.beginPath();
+  for (let i = 0; i < NPTS; i++){
+    const x = xOfI(i), y = yOfV(vals[i]);
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.stroke();
+  g.fillStyle = '#333'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.font = '600 15px system-ui, sans-serif';
+  g.fillText('Demo: noisy sine wave (index)', L, 20);
+  return {
+    canvas: cv,
+    calib: {
+      rect: { x0: L, x1: R, yt: T, yb: B },
+      yscan: T, vTop: vTop, vBottom: vBot,
+      d0: '2020-01', d1: '2021-12'
+    }
+  };
+}
+$('demoBtn').addEventListener('click', () => {
+  const demo = makeDemoChart();
+  setupImage(demo.canvas, 'demo-noisy-sine', demo.calib);
+});
+
+/* =====================================================================
+   STEP 2 — calibration
+   ===================================================================== */
+const calibSvg = $('calibSvg');
+let pickMode = false;
+let dragMode = null, dragStart = null, rectStart = null;
+
+function parseMonth(s){
+  const m = /^(\d{4})-(\d{2})$/.exec(s || '');
+  if (!m) return null;
+  return { y: +m[1], m: +m[2] };
+}
+function currentIsLine(){
+  return makeIsLine(S.lineMode, S.lr, S.lg, S.lb);
+}
+function svgCoords(e){
+  const r = calibSvg.getBoundingClientRect();
+  return [
+    (e.clientX - r.left) * S.imgW / r.width,
+    (e.clientY - r.top) * S.imgH / r.height
+  ];
+}
+function screenTol(px){
+  return px * S.imgW / calibSvg.getBoundingClientRect().width;
+}
+// Central rect setter: normalizes, clamps, syncs fields + yscan default.
+function setRect(r, fromFields){
+  const x0 = Math.max(0, Math.min(r.x0, r.x1));
+  const x1 = Math.min(S.imgW, Math.max(r.x0, r.x1));
+  const yt = Math.max(0, Math.min(r.yt, r.yb));
+  const yb = Math.min(S.imgH, Math.max(r.yt, r.yb));
+  S.rect = { x0: Math.round(x0), x1: Math.round(x1), yt: Math.round(yt), yb: Math.round(yb) };
+  if (S.yscanAuto) S.yscan = S.rect.yt;
+  S.analysisCache = null;
+  clearPreview();
+  syncFieldsFromState();
+  updateSlopeReadout();
+  renderCalib();
+  updateDetectPreview();
+}
+function syncFieldsFromState(){
+  const r = S.rect;
+  $('fx0').value = r ? r.x0 : '';
+  $('fx1').value = r ? r.x1 : '';
+  $('fyt').value = r ? r.yt : '';
+  $('fyb').value = r ? r.yb : '';
+  $('fscan').value = S.yscan != null ? Math.round(S.yscan) : '';
+}
+function updateSlopeReadout(){
+  const t = parseFloat($('vTop').value), b = parseFloat($('vBottom').value);
+  const r = S.rect;
+  if (r && isFinite(t) && isFinite(b) && r.yb > r.yt){
+    S.slope = (b - t) / (r.yb - r.yt);
+    S.intercept = t - S.slope * r.yt;
+    $('slopeReadout').textContent =
+      'value = ' + S.slope.toPrecision(6) + ' \u00d7 y + ' + S.intercept.toPrecision(6);
+  } else {
+    S.slope = null; S.intercept = null;
+    $('slopeReadout').textContent = '\u2014';
+  }
+}
+function renderCalib(){
+  const W = S.imgW, H = S.imgH;
+  const tol = screenTol(14);
+  const hr = Math.max(5, W / 220); // handle radius in canvas px
+  let s = '';
+  const r = S.rect;
+  if (r){
+    s += '<rect x="' + r.x0 + '" y="' + r.yt + '" width="' + (r.x1 - r.x0) +
+      '" height="' + (r.yb - r.yt) + '" fill="rgba(26,115,232,0.06)" ' +
+      'stroke="#1a73e8" stroke-width="' + (W / 500) + '"/>';
+    const cs = [[r.x0, r.yt], [r.x1, r.yt], [r.x0, r.yb], [r.x1, r.yb]];
+    for (const [cx, cy] of cs)
+      s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + hr + '" fill="#fff" ' +
+        'stroke="#1a73e8" stroke-width="' + (W / 600) + '"/>';
+  }
+  if (S.yscan != null && r){
+    s += '<line x1="' + r.x0 + '" y1="' + S.yscan + '" x2="' + r.x1 + '" y2="' + S.yscan +
+      '" stroke="#ff8c00" stroke-width="' + (W / 450) + '" stroke-dasharray="' +
+      (W / 130) + ' ' + (W / 200) + '"/>';
+    s += '<circle cx="' + ((r.x0 + r.x1) / 2) + '" cy="' + S.yscan + '" r="' + hr +
+      '" fill="#ff8c00" stroke="#fff" stroke-width="' + (W / 700) + '"/>';
+  }
+  // keep the preview dots layer (id gPrev) intact
+  const prev = $('gPrev');
+  calibSvg.innerHTML = s + '<g id="gPrev"></g>';
+  if (prev) $('gPrev').innerHTML = prev.innerHTML;
+}
+function setYscan(y){
+  const r = S.rect;
+  y = Math.round(Math.max(0, Math.min(S.imgH, y)));
+  S.yscan = y;
+  S.yscanAuto = false;
+  S.analysisCache = null;
+  clearPreview();
+  $('fscan').value = y;
+  renderCalib();
+  updateDetectPreview();
+}
+// Stale preview dots must go as soon as calibration changes.
+function clearPreview(){
+  const g = $('gPrev');
+  if (g) g.innerHTML = '';
+  $('prevReadout').textContent = '';
+}
+
+// --- pointer interaction: new rect / move / resize corners / drag yscan / color pick ---
+calibSvg.addEventListener('pointerdown', e => {
+  if (!S.imgCanvas) return;
+  if (pickMode){ pickColorAt(e); return; }
+  e.preventDefault();
+  calibSvg.setPointerCapture(e.pointerId);
+  const [sx, sy] = svgCoords(e);
+  const tol = screenTol(16);
+  const r = S.rect;
+  if (S.yscan != null && Math.abs(sy - S.yscan) < tol &&
+      (!r || (sx >= r.x0 - tol && sx <= r.x1 + tol))){
+    dragMode = 'yscan';
+    return;
+  }
+  if (r){
+    const corners = { nw: [r.x0, r.yt], ne: [r.x1, r.yt], sw: [r.x0, r.yb], se: [r.x1, r.yb] };
+    for (const k of Object.keys(corners)){
+      const [cx, cy] = corners[k];
+      if (Math.hypot(sx - cx, sy - cy) < tol * 1.4){
+        dragMode = k; rectStart = { ...r }; dragStart = [sx, sy];
+        return;
+      }
+    }
+    if (sx >= r.x0 && sx <= r.x1 && sy >= r.yt && sy <= r.yb){
+      dragMode = 'move'; rectStart = { ...r }; dragStart = [sx, sy];
+      return;
+    }
+  }
+  dragMode = 'new'; dragStart = [sx, sy];
+  S.rect = { x0: Math.round(sx), x1: Math.round(sx), yt: Math.round(sy), yb: Math.round(sy) };
+});
+calibSvg.addEventListener('pointermove', e => {
+  if (!dragMode) return;
+  const [sx, sy] = svgCoords(e);
+  if (dragMode === 'yscan'){ setYscan(sy); return; }
+  if (dragMode === 'new'){
+    setRect({ x0: dragStart[0], x1: sx, yt: dragStart[1], yb: sy });
+    return;
+  }
+  const rs = rectStart, dx = sx - dragStart[0], dy = sy - dragStart[1];
+  let r = { ...rs };
+  if (dragMode === 'move'){
+    const w = rs.x1 - rs.x0, h = rs.yb - rs.yt;
+    r.x0 = Math.max(0, Math.min(S.imgW - w, rs.x0 + dx));
+    r.yt = Math.max(0, Math.min(S.imgH - h, rs.yt + dy));
+    r.x1 = r.x0 + w; r.yb = r.yt + h;
+  } else {
+    if (dragMode.indexOf('e') >= 0) r.x1 = rs.x1 + dx; else r.x0 = rs.x0 + dx;
+    if (dragMode.indexOf('s') >= 0) r.yb = rs.yb + dy; else r.yt = rs.yt + dy;
+  }
+  setRect(r);
+});
+function endCalibDrag(){
+  if (!dragMode) return;
+  const wasNew = dragMode === 'new';
+  dragMode = null; dragStart = null; rectStart = null;
+  const r = S.rect;
+  if (wasNew && r && (r.x1 - r.x0 < 20 || r.yb - r.yt < 20)){
+    S.rect = null; S.yscan = null; S.yscanAuto = true;
+    syncFieldsFromState(); renderCalib(); updateDetectPreview();
+  }
+}
+calibSvg.addEventListener('pointerup', endCalibDrag);
+calibSvg.addEventListener('pointercancel', endCalibDrag);
+
+// --- numeric fields sync both ways ---
+function rectFromFields(){
+  const x0 = +$('fx0').value, x1 = +$('fx1').value,
+        yt = +$('fyt').value, yb = +$('fyb').value;
+  if ([x0, x1, yt, yb].every(isFinite)) setRect({ x0, x1, yt, yb }, true);
+}
+['fx0', 'fx1', 'fyt', 'fyb'].forEach(id =>
+  $(id).addEventListener('change', rectFromFields));
+$('fscan').addEventListener('change', () => {
+  const v = +$('fscan').value;
+  if (isFinite(v)) setYscan(v);
+});
+$('vTop').addEventListener('input', updateSlopeReadout);
+$('vBottom').addEventListener('input', updateSlopeReadout);
+$('d0').addEventListener('change', () => { S.d0 = parseMonth($('d0').value); });
+$('d1').addEventListener('change', () => { S.d1 = parseMonth($('d1').value); });
+$('chartName').addEventListener('input', () => { S.name = $('chartName').value; });
+window.addEventListener('resize', () => { if (!$('step2').hidden) renderCalib(); });
+
+/* ---------- line color controls ---------- */
+$('autoColor').addEventListener('change', () => {
+  if ($('autoColor').checked){
+    S.lineMode = 'auto';
+    $('hexColor').value = '';
+  }
+  S.analysisCache = null;
+  updateDetectPreview();
+});
+function setSpecificColor(r, g, b){
+  S.lineMode = 'color';
+  S.lr = r; S.lg = g; S.lb = b;
+  $('autoColor').checked = false;
+  $('hexColor').value = '#' + [r, g, b].map(v =>
+    Math.round(v).toString(16).padStart(2, '0')).join('');
+  S.analysisCache = null;
+  updateDetectPreview();
+}
+$('hexColor').addEventListener('input', () => {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec($('hexColor').value.trim());
+  if (m){
+    const v = parseInt(m[1], 16);
+    setSpecificColor((v >> 16) & 255, (v >> 8) & 255, v & 255);
+  }
+});
+$('pickBtn').addEventListener('click', () => {
+  pickMode = !pickMode;
+  calibSvg.classList.toggle('pick', pickMode);
+  $('pickBtn').classList.toggle('on', pickMode);
+  $('pickBtn').textContent = pickMode
+    ? 'Picking\u2026 click the chart line (Esc to cancel)'
+    : 'Click the chart line to pick its color';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && pickMode) $('pickBtn').click();
+});
+function pickColorAt(e){
+  const [sx, sy] = svgCoords(e);
+  const cx = S.imgCanvas.getContext('2d', { willReadFrequently: true });
+  const x = Math.max(0, Math.min(S.imgW - 1, Math.round(sx)));
+  const y = Math.max(0, Math.min(S.imgH - 1, Math.round(sy)));
+  const d = cx.getImageData(Math.max(0, x - 2), Math.max(0, y - 2), 5, 5).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4){ r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+  setSpecificColor(r / n, g / n, b / n);
+  $('pickBtn').click(); // exit pick mode
+}
+
+// Detection preview: plot area (or whole image), dimmed, line pixels magenta.
+function updateDetectPreview(){
+  const pv = $('detectPreview');
+  if (!S.imgCanvas){ pv.width = 0; pv.height = 0; return; }
+  const r = S.rect || { x0: 0, x1: S.imgW, yt: 0, yb: S.imgH };
+  const rw = Math.max(1, r.x1 - r.x0), rh = Math.max(1, r.yb - r.yt);
+  const pw = 520, ph = Math.max(1, Math.round(pw * rh / rw));
+  pv.width = pw; pv.height = ph;
+  const g = pv.getContext('2d');
+  g.drawImage(S.imgCanvas, r.x0, r.yt, rw, rh, 0, 0, pw, ph);
+  const img = g.getImageData(0, 0, pw, ph);
+  const d = img.data;
+  const isLine = currentIsLine();
+  for (let i = 0; i < d.length; i += 4){
+    if (isLine(d[i], d[i + 1], d[i + 2])){
+      d[i] = 255; d[i + 1] = 0; d[i + 2] = 255;
+    } else {
+      d[i] = Math.round(d[i] * 0.45);
+      d[i + 1] = Math.round(d[i + 1] * 0.45);
+      d[i + 2] = Math.round(d[i + 2] * 0.45);
+    }
+  }
+  g.putImageData(img, 0, 0);
+}
+
+/* ---------- analysis (cached) ---------- */
+function analysisKey(){
+  const r = S.rect;
+  return JSON.stringify([r && [r.x0, r.x1, r.yt, r.yb], S.yscan,
+    S.lineMode, S.lr, S.lg, S.lb]);
+}
+function getAnalysis(){
+  const k = analysisKey();
+  if (S.analysisCache && S.analysisKey === k) return S.analysisCache;
+  const cx = S.imgCanvas.getContext('2d', { willReadFrequently: true });
+  const px = cx.getImageData(0, 0, S.imgW, S.imgH).data;
+  const W = S.imgW;
+  const getPx = (x, y) => {
+    const o = (y * W + x) * 4;
+    return [px[o], px[o + 1], px[o + 2]];
+  };
+  const r = S.rect;
+  const raw = buildColumnMedians(currentIsLine(), getPx, r.x0, r.x1, Math.round(S.yscan), r.yb);
+  const res = { cols: smoothCols(raw), raw };
+  S.analysisCache = res;
+  S.analysisKey = k;
+  return res;
+}
+function stateForSampling(){
+  const r = S.rect;
+  return {
+    x0: r.x0, x1: r.x1,
+    slope: S.slope, intercept: S.intercept,
+    d0: S.d0, d1: S.d1
+  };
+}
+
+/* ---------- validation ---------- */
+function validateCalibration(){
+  const r = S.rect;
+  if (!r || r.x1 - r.x0 < 20 || r.yb - r.yt < 20)
+    return 'Draw the plot-area rectangle on the image first (drag across the data region).';
+  if (S.yscan == null || S.yscan < r.yt || S.yscan > r.yb)
+    return 'The legend guard line must sit inside the rectangle (between its top and bottom).';
+  const t = parseFloat($('vTop').value), b = parseFloat($('vBottom').value);
+  if (!isFinite(t) || !isFinite(b))
+    return 'Enter the y-axis values at the rectangle top and bottom.';
+  if (t === b) return 'The top and bottom y-axis values must differ.';
+  if (!S.d0 || !S.d1) return 'Pick the start and end months of the date range.';
+  if (monthsBetween(S.d0, S.d1) < 1) return 'The end month must not be before the start month.';
+  if (!$('chartName').value.trim()) return 'Give the chart a name.';
+  return null;
+}
+
+/* ---------- preview extraction: red dots on monthly points ---------- */
+$('previewBtn').addEventListener('click', () => {
+  $('calibError').textContent = '';
+  const err = validateCalibration();
+  if (err){ $('calibError').textContent = err; return; }
+  const t0 = performance.now();
+  const an = getAnalysis();
+  const rows = monthlyRows(an.raw, stateForSampling());
+  const r = S.rect, n = rows.length;
+  let dots = '';
+  for (let i = 0; i < n; i++){
+    const x = n === 1 ? r.x0 : r.x0 + i / (n - 1) * (r.x1 - r.x0);
+    const y = (rows[i].value - S.intercept) / S.slope;
+    dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' +
+      Math.max(4, S.imgW / 260) + '" fill="#ff2d2d" stroke="#fff" stroke-width="' +
+      (S.imgW / 700) + '" pointer-events="none"/>';
+  }
+  $('gPrev').innerHTML = dots;
+  $('prevReadout').textContent = n.toLocaleString() + ' monthly points plotted in ' +
+    Math.round(performance.now() - t0) + ' ms \u2014 red dots should sit on the line.';
+});
+
+/* ---------- Digitize -> build the Step 3 workspace ---------- */
+$('digitizeBtn').addEventListener('click', () => {
+  $('calibError').textContent = '';
+  const err = validateCalibration();
+  if (err){ $('calibError').textContent = err; return; }
+  const an = getAnalysis();
+  const rows = monthlyRows(an.raw, stateForSampling());
+  buildWorkspace(rows, an);
+  showStep(3);
+});
+$('backBtn').addEventListener('click', () => showStep(2));
+
+/* =====================================================================
+   STEP 3 — correction workspace (generalized single-chart page).
+   Same look, feel and features as the template; every constant comes
+   from the Step 2 state. No placeholders.
+   ===================================================================== */
+function slugify(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '').slice(0, 60) || 'chart';
+}
+
+function buildWorkspace(monthlyRowsIn, analysis){
+  const r = S.rect;
+  const X0 = r.x0, X1 = r.x1, W = S.imgW, H = S.imgH;
+  const YMIN = r.yt, YMAX = r.yb, YSCAN = Math.round(S.yscan);
+  const SLOPE = S.slope, INTERCEPT = S.intercept;
+  const name = $('chartName').value.trim() || 'chart';
+  const slug = slugify(name);
+  const d0 = S.d0, d1 = S.d1;
+  const D0MS = Date.UTC(d0.y, d0.m - 1, 1), D1MS = Date.UTC(d1.y, d1.m - 1, 1);
+  const Y0 = d0.y, Y1 = d1.y;
+
+  const wsHTML =
+    '<div id="wsHead">' +
+    '<h2>3. Correct &amp; download &mdash; ' + esc(name) + '</h2>' +
+    '<p>Drag any dot <b>up / down</b> to correct its value &mdash; the CSV updates live. ' +
+    'Dots turn orange once adjusted. Click a dot then use <kbd>&uarr;</kbd>/<kbd>&darr;</kbd> ' +
+    'for fine nudges (<kbd>Shift</kbd> = &times;10 step).<br>' +
+    '<b>Capture peaks &amp; troughs</b> scans the chart image for local highs and lows and snaps the ' +
+    'nearest dot to each &mdash; it catches sharp tips the regular sampling misses. ' +
+    '<b>Frequency</b> switches the sampling density: Daily, Weekly, Monthly or Yearly.</p>' +
+    '</div>' +
+    '<div id="wsStage">' +
+    '<img id="wsChart" alt="chart" draggable="false">' +
+    '<svg id="wsOverlay" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" ' +
+    'role="application" aria-label="Draggable extracted data points"></svg>' +
+    '<div id="wsTip"></div>' +
+    '</div>' +
+    '<div id="wsPanel">' +
+    '<button class="btn primary" id="wsDl" type="button">Download corrected CSV</button>' +
+    '<button class="btn" id="wsPeaks" type="button">Capture peaks &amp; troughs</button>' +
+    '<span class="grouplabel">Frequency:</span>' +
+    '<span id="wsFreqs">' +
+    '<button class="btn" data-f="daily" type="button">Daily</button>' +
+    '<button class="btn" data-f="weekly" type="button">Weekly</button>' +
+    '<button class="btn on" data-f="monthly" type="button">Monthly</button>' +
+    '<button class="btn" data-f="yearly" type="button">Yearly</button>' +
+    '</span>' +
+    '<button class="btn" id="wsReset" type="button">Reset all</button>' +
+    '<span id="wsReadout">Hover or drag a dot&hellip;</span>' +
+    '<span id="wsCount"></span>' +
+    '</div>';
+  $('wsRoot').innerHTML = wsHTML;
+  $('wsChart').src = S.imgCanvas.toDataURL();
+
+  const MONTHLY = monthlyRowsIn.map(d => ({ date: d.date, value: d.value }));
+  const FREQS = { daily: { r: 2.5 }, weekly: { r: 3.5 }, monthly: { r: 5 }, yearly: { r: 6 } };
+  let N = MONTHLY.length, FREQ = 'monthly';
+  let DATA = MONTHLY.map(d => ({ ...d }));
+  let BASE = DATA.map(d => d.value);
+  const svg = $('wsOverlay'), tip = $('wsTip'), stage = $('wsStage');
+  const readout = $('wsReadout'), countEl = $('wsCount'), peaksBtn = $('wsPeaks');
+  const xOf = i => N === 1 ? X0 : X0 + i * (X1 - X0) / (N - 1);
+  const yOf = v => (v - INTERCEPT) / SLOPE;
+  const vOf = y => SLOPE * y + INTERCEPT;
+  const isCh = i => Math.abs(DATA[i].value - BASE[i]) > 1e-9;
+  const changedCount = () => DATA.reduce((n, d, i) => n + (isCh(i) ? 1 : 0), 0);
+  let dots = [], dragI = -1;
+
+  function paint(i){
+    const d = DATA[i], c = dots[i];
+    c.setAttribute('cx', xOf(i).toFixed(1));
+    c.setAttribute('cy', isFinite(d.value) ? yOf(d.value).toFixed(1) : YMAX);
+    c.setAttribute('fill', isCh(i) ? '#ff8c00' : '#ff2d2d');
+    c.setAttribute('aria-label', d.date + ' value ' + (isFinite(d.value) ? d.value.toFixed(2) : 'n/a'));
+  }
+  function refresh(i){
+    paint(i);
+    const n = changedCount();
+    countEl.textContent = n ? n + ' point' + (n > 1 ? 's' : '') + ' adjusted' : '';
+    readout.textContent = DATA[i].date + ' \u2192 ' +
+      (isFinite(DATA[i].value) ? DATA[i].value.toFixed(2) : 'n/a') + (isCh(i) ? ' \u25cf' : '');
+  }
+  function showTip(i, cx, cy){
+    const d = DATA[i], sr = stage.getBoundingClientRect();
+    tip.style.display = 'block';
+    tip.textContent = d.date + ': ' + (isFinite(d.value) ? d.value.toFixed(2) : 'n/a');
+    tip.style.left = (cx - sr.left + 14) + 'px';
+    tip.style.top = (cy - sr.top - 12) + 'px';
+  }
+  function hideTip(){ tip.style.display = 'none'; }
+  const svgY = clientY => {
+    const rr = svg.getBoundingClientRect();
+    return (clientY - rr.top) * H / rr.height;
+  };
+
+  function attachHandlers(c, i){
+    c.addEventListener('pointerdown', e => {
+      dragI = i;
+      c.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      showTip(i, e.clientX, e.clientY);
+    });
+    c.addEventListener('pointermove', e => {
+      if (dragI !== i) return;
+      const y = Math.min(YMAX, Math.max(YMIN, svgY(e.clientY)));
+      DATA[i].value = Math.round(vOf(y) * 100) / 100;
+      refresh(i);
+      showTip(i, e.clientX, e.clientY);
+    });
+    const end = () => { if (dragI === i){ dragI = -1; hideTip(); } };
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+    c.addEventListener('mouseenter', e => { if (dragI < 0) showTip(i, e.clientX, e.clientY); });
+    c.addEventListener('mouseleave', () => { if (dragI < 0) hideTip(); });
+    c.addEventListener('focus', () => refresh(i));
+    c.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const step = (e.shiftKey ? 0.5 : 0.05) * (e.key === 'ArrowUp' ? 1 : -1);
+      DATA[i].value = Math.round((DATA[i].value + step) * 100) / 100;
+      refresh(i);
+    });
+  }
+  function buildDots(){
+    svg.innerHTML = '';
+    const rr = FREQS[FREQ].r, focusable = N <= 2000;
+    dots = DATA.map((d, i) => {
+      const c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('r', rr);
+      c.setAttribute('stroke', '#fff');
+      c.setAttribute('stroke-width', '1.5');
+      if (focusable) c.setAttribute('tabindex', '0');
+      attachHandlers(c, i);
+      svg.appendChild(c);
+      return c;
+    });
+    DATA.forEach((d, i) => paint(i));
+    countEl.textContent = '';
+    readout.textContent = N.toLocaleString() + ' points (' + FREQ + '). Hover or drag a dot\u2026';
+  }
+
+  /* chart-image pixel analysis, shared with Step 2 (already computed/cached) */
+  function colAt(x){
+    const COLS = analysis.cols;
+    const f = Math.min(COLS.length - 1.001, Math.max(0, x - X0));
+    const i = Math.floor(f), t = f - i;
+    return COLS[i] * (1 - t) + COLS[i + 1] * t;
+  }
+  function findExtrema(){
+    return findExtremaCore(analysis.cols, analysis.raw, vOf, X0);
+  }
+
+  peaksBtn.addEventListener('click', () => {
+    peaksBtn.disabled = true;
+    const old = peaksBtn.textContent;
+    peaksBtn.textContent = 'Analyzing\u2026';
+    try {
+      const ex = findExtrema();
+      let n = 0;
+      ex.forEach(p => {
+        let i = Math.round((p.x - X0) / (X1 - X0) * (N - 1));
+        i = Math.max(0, Math.min(N - 1, i));
+        if (Math.abs(DATA[i].value - p.value) > 1e-9){ DATA[i].value = p.value; n++; }
+        paint(i);
+      });
+      const c = changedCount();
+      countEl.textContent = c ? c + ' point' + (c > 1 ? 's' : '') + ' adjusted' : '';
+      readout.textContent = ex.length + ' extrema found (' +
+        ex.filter(e => e.type === 'peak').length + ' peaks, ' +
+        ex.filter(e => e.type === 'trough').length + ' troughs), ' + n + ' dots updated.';
+    } finally {
+      peaksBtn.disabled = false;
+      peaksBtn.textContent = old;
+    }
+  });
+
+  function setFrequency(mode){
+    if (mode === FREQ) return;
+    const btn = document.querySelector('#wsFreqs button[data-f="' + mode + '"]');
+    btn.disabled = true;
+    try {
+      if (mode === 'monthly'){
+        N = MONTHLY.length;
+        DATA = MONTHLY.map(d => ({ ...d }));
+      } else {
+        const t0 = D0MS, t1 = D1MS, dates = [];
+        if (mode === 'yearly'){
+          for (let y = Y0; y <= Y1; y++) dates.push(Date.UTC(y, 0, 1));
+        } else {
+          const step = mode === 'daily' ? 1 : 7;
+          const nd = Math.floor((t1 - t0) / 864e5 / step) + 1;
+          for (let i = 0; i < nd; i++) dates.push(t0 + i * step * 864e5);
+        }
+        DATA = dates.map(t => {
+          const x = X0 + (t - t0) / (t1 - t0) * (X1 - X0);
+          return {
+            date: new Date(t).toISOString().slice(0, 10),
+            value: Math.round(vOf(colAt(x)) * 100) / 100
+          };
+        });
+        N = DATA.length;
+      }
+      BASE = DATA.map(d => d.value);
+      FREQ = mode;
+      buildDots();
+      document.querySelectorAll('#wsFreqs button').forEach(b =>
+        b.classList.toggle('on', b.dataset.f === mode));
+    } finally { btn.disabled = false; }
+  }
+  document.querySelectorAll('#wsFreqs button').forEach(b =>
+    b.addEventListener('click', () => setFrequency(b.dataset.f)));
+
+  $('wsDl').addEventListener('click', () => {
+    const csv = 'date,value\n' +
+      DATA.map(d => d.date + ',' + (isFinite(d.value) ? d.value.toFixed(2) : '')).join('\n') + '\n';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = slug + '_' + FREQ + '_corrected.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('wsReset').addEventListener('click', () => {
+    DATA.forEach((d, i) => { d.value = BASE[i]; paint(i); });
+    countEl.textContent = '';
+    readout.textContent = 'Reset to sampled values (' + FREQ + ').';
+  });
+
+  buildDots();
+}
+
+/* ---------- init ---------- */
+showStep(1);
+</script>
+</body>
+</html>

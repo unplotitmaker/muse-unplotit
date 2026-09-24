@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unplotit.com &mdash; Chart Data Extractor</title>
+<style>
+  body { margin:0; background:#f4f5f7; color:#222; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { padding:16px 24px; background:#fff; border-bottom:1px solid #e2e2e2; }
+  header h1 { font-size:20px; margin:0 0 4px; }
+  header h1 .dot { color:#1a73e8; }
+  header p { margin:0; font-size:13px; color:#666; max-width:980px; line-height:1.6; }
+  main { max-width:1400px; margin:16px auto 32px; padding:0 16px; }
+  #stage { position:relative; background:#fff; border:1px solid #ddd; }
+  #stage img { display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }
+  #overlay { position:absolute; inset:0; width:100%; height:100%; }
+  #overlay circle { cursor:grab; touch-action:none; outline:none; }
+  #overlay circle:active { cursor:grabbing; }
+  #overlay circle:focus { stroke:#111; stroke-width:2.5; }
+  #tip { position:absolute; display:none; background:#111; color:#fff; font-size:12px;
+         padding:4px 8px; border-radius:4px; pointer-events:none; white-space:nowrap; z-index:5; }
+  #panel { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap;
+           background:#fff; border:1px solid #ddd; padding:12px 16px; }
+  button { font-size:14px; font-weight:600; color:#111; padding:8px 14px; border-radius:6px;
+           border:1px solid #ccc; background:#fff; cursor:pointer; }
+  button.primary { background:#1a73e8; color:#fff; border-color:#1a73e8; }
+  button.on { background:#e8f0fe; border-color:#1a73e8; color:#1a73e8; }
+  button:disabled { opacity:.55; cursor:wait; }
+  .grouplabel { font-size:13px; color:#666; margin-left:8px; }
+  #readout { font-size:14px; min-width:280px; font-variant-numeric:tabular-nums; }
+  #count { font-size:13px; color:#b26a00; font-weight:600; }
+  kbd { background:#eee; border:1px solid #ccc; border-radius:3px; padding:0 4px; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Unplotit<span class="dot">.com</span> &mdash; Chart Data Extractor</h1>
+  <p><b>__CHART_NAME__</b>. Drag any dot
+  <b>up / down</b> to correct its value &mdash; the CSV updates live. Dots turn orange once
+  adjusted. Click a dot then use <kbd>&uarr;</kbd>/<kbd>&darr;</kbd> for fine nudges
+  (<kbd>Shift</kbd> = &times;10 step).<br>
+  <b>Capture peaks &amp; troughs</b> scans the chart image for local highs and lows and snaps the
+  nearest dot to each &mdash; it catches sharp tips the regular sampling misses.
+  <b>Frequency</b> switches the sampling density: Daily, Weekly, Monthly or Yearly.</p>
+</header>
+<main>
+  <div id="stage">
+    <img id="chart" src="data:image/png;base64,__IMG_B64__" alt="chart" draggable="false">
+    <svg id="overlay" viewBox="0 0 __W__ __H__" preserveAspectRatio="none" role="application"
+         aria-label="Draggable extracted data points"></svg>
+    <div id="tip"></div>
+  </div>
+  <div id="panel">
+    <button id="dl" class="primary">Download corrected CSV</button>
+    <button id="peaks">Capture peaks &amp; troughs</button>
+    <span class="grouplabel">Frequency:</span>
+    <span id="freqs">
+      <button data-f="daily">Daily</button><button data-f="weekly">Weekly</button><button data-f="monthly" class="on">Monthly</button><button data-f="yearly">Yearly</button>
+    </span>
+    <button id="reset">Reset all</button>
+    <span id="readout">Hover or drag a dot&hellip;</span>
+    <span id="count"></span>
+  </div>
+  <p style="font-size:12px;color:#888;margin:10px 2px 0">Extracted with <a href="https://www.unplotit.com/" style="color:#1a73e8">unplotit.com</a> &mdash; turn any chart image into CSV data.</p>
+</main>
+<script>
+const SLOPE = __SLOPE__, INTERCEPT = __INTERCEPT__;   // value = SLOPE*y_px + INTERCEPT
+const X0 = __X0__, X1 = __X1__, W = __W__, H = __H__;
+const YMIN = __YMIN__, YMAX = __YMAX__;
+const D0MS = Date.UTC(__D0Y__,__D0M0__,1), D1MS = Date.UTC(__D1Y__,__D1M0__,1), Y0 = __Y0__, Y1 = __Y1__;
+const CSV_PREFIX = '__CSV_PREFIX__';
+const LMODE = '__LMODE__', LR = __LR__, LG = __LG__, LB = __LB__;
+function isLinePx(r, g, b){
+  if (LMODE === 'auto'){
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+    return (mx-mn) > 70 && mx >= 60 && mn <= 215;
+  }
+  const dr=r-LR, dg=g-LG, db=b-LB;
+  return dr*dr+dg*dg+db*db < 10000;
+}
+const MONTHLY = __DATA_JSON__;
+const FREQS = { daily:{r:2.5}, weekly:{r:3.5}, monthly:{r:5}, yearly:{r:6} };
+let N = MONTHLY.length, FREQ = 'monthly';
+let DATA = MONTHLY.map(d => ({...d}));
+let BASE = DATA.map(d => d.value);
+const svg = document.getElementById('overlay');
+const tip = document.getElementById('tip');
+const stage = document.getElementById('stage');
+const readout = document.getElementById('readout');
+const countEl = document.getElementById('count');
+const peaksBtn = document.getElementById('peaks');
+const NS = 'http://www.w3.org/2000/svg';
+const xOf = i => X0 + i*(X1-X0)/(N-1);
+const yOf = v => (v - INTERCEPT)/SLOPE;
+const vOf = y => SLOPE*y + INTERCEPT;
+const isCh = i => Math.abs(DATA[i].value - BASE[i]) > 1e-9;
+const changedCount = () => DATA.reduce((n,d,i)=>n+(isCh(i)?1:0),0);
+
+let dots = [];
+let dragI = -1;
+
+function paint(i){
+  const d = DATA[i], c = dots[i];
+  c.setAttribute('cx', xOf(i).toFixed(1));
+  c.setAttribute('cy', yOf(d.value).toFixed(1));
+  c.setAttribute('fill', isCh(i) ? '#ff8c00' : '#ff2d2d');
+  c.setAttribute('aria-label', d.date + ' value ' + d.value.toFixed(2));
+}
+function refresh(i){
+  paint(i);
+  const n = changedCount();
+  countEl.textContent = n ? n + ' point' + (n>1?'s':'') + ' adjusted' : '';
+  readout.textContent = DATA[i].date + ' \u2192 ' + DATA[i].value.toFixed(2) + (isCh(i) ? ' \u25cf' : '');
+}
+function showTip(i, cx, cy){
+  const d = DATA[i], sr = stage.getBoundingClientRect();
+  tip.style.display = 'block';
+  tip.textContent = d.date + ': ' + d.value.toFixed(2);
+  tip.style.left = (cx - sr.left + 14) + 'px';
+  tip.style.top = (cy - sr.top - 12) + 'px';
+}
+function hideTip(){ tip.style.display = 'none'; }
+const svgY = clientY => {
+  const r = svg.getBoundingClientRect();
+  return (clientY - r.top) * H / r.height;
+};
+
+function attachHandlers(c, i){
+  c.addEventListener('pointerdown', e => {
+    dragI = i;
+    c.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    showTip(i, e.clientX, e.clientY);
+  });
+  c.addEventListener('pointermove', e => {
+    if (dragI !== i) return;
+    const y = Math.min(YMAX, Math.max(YMIN, svgY(e.clientY)));
+    DATA[i].value = Math.round(vOf(y)*100)/100;
+    refresh(i);
+    showTip(i, e.clientX, e.clientY);
+  });
+  const end = () => { if (dragI === i){ dragI = -1; hideTip(); } };
+  c.addEventListener('pointerup', end);
+  c.addEventListener('pointercancel', end);
+  c.addEventListener('mouseenter', e => { if (dragI < 0) showTip(i, e.clientX, e.clientY); });
+  c.addEventListener('mouseleave', () => { if (dragI < 0) hideTip(); });
+  c.addEventListener('focus', () => refresh(i));
+  c.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    const step = (e.shiftKey ? 0.5 : 0.05) * (e.key === 'ArrowUp' ? 1 : -1);
+    DATA[i].value = Math.round((DATA[i].value + step)*100)/100;
+    refresh(i);
+  });
+}
+
+function buildDots(){
+  svg.innerHTML = '';
+  const r = FREQS[FREQ].r, focusable = N <= 2000;
+  dots = DATA.map((d,i) => {
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('r', r);
+    c.setAttribute('stroke', '#fff');
+    c.setAttribute('stroke-width', '1.5');
+    if (focusable) c.setAttribute('tabindex', '0');
+    attachHandlers(c, i);
+    svg.appendChild(c);
+    return c;
+  });
+  DATA.forEach((d,i) => paint(i));
+  countEl.textContent = '';
+  readout.textContent = N.toLocaleString() + ' points (' + FREQ + '). Hover or drag a dot\u2026';
+}
+
+/* ---------- chart-image pixel analysis (for peaks + resampling) ---------- */
+let COLS = null, COLS_RAW = null;
+function ensureAnalysis(){
+  return new Promise(resolve => {
+    if (COLS) return resolve();
+    const im = document.getElementById('chart');
+    const go = () => {
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const cx = cv.getContext('2d', {willReadFrequently:true});
+      cx.drawImage(im, 0, 0, W, H);
+      const px = cx.getImageData(0,0,W,H).data;
+      const n = X1-X0+1, med = new Float32Array(n);
+      const yrange = YMAX-__YSCAN__+1;
+      const dead = new Uint8Array(n); // axis columns (+neighbours): tick marks outnumber data pixels there
+      for(let xi=0; xi<n; xi++){
+        const x = X0+xi; let cnt = 0;
+        for(let y=__YSCAN__; y<=YMAX; y++){
+          const o=(y*W+x)*4;
+          if(isLinePx(px[o], px[o+1], px[o+2])) cnt++;
+        }
+        if(cnt > 0.8*yrange) for(let k=-3;k<=3;k++){ const j=xi+k; if(j>=0&&j<n) dead[j]=1; }
+      }
+      for(let xi=0; xi<n; xi++){
+        const x = X0+xi, ys = [];
+        if(!dead[xi]) for(let y=__YSCAN__; y<=YMAX; y++){ // skips the legend swatch band at the top of the plot
+          const o=(y*W+x)*4;
+          if(isLinePx(px[o], px[o+1], px[o+2])) ys.push(y);
+        }
+        med[xi] = ys.length ? ys.sort((a,b)=>a-b)[ys.length>>1] : NaN;
+      }
+      for(let xi=0,last=NaN; xi<n; xi++){ if(isNaN(med[xi])) med[xi]=last; else last=med[xi]; }
+      for(let xi=n-1,last=NaN; xi>=0; xi--){ if(isNaN(med[xi])) med[xi]=last; else last=med[xi]; }
+      const sm = new Float32Array(n);
+      for(let xi=0; xi<n; xi++){
+        let s=0,c=0;
+        for(let k=-3;k<=3;k++){ const j=xi+k; if(j>=0&&j<n){ s+=med[j]; c++; } }
+        sm[xi]=s/c;
+      }
+      COLS = sm; COLS_RAW = med; resolve();
+    };
+    if (im.complete && im.naturalWidth) go(); else im.onload = go;
+  });
+}
+function colAt(x){ // linear interp of smoothed column median at fractional x
+  const f = Math.min(COLS.length-1.001, Math.max(0, x-X0));
+  const i = Math.floor(f), t = f-i;
+  return COLS[i]*(1-t) + COLS[i+1]*t;
+}
+function findExtrema(){
+  const n = COLS.length, v = new Float32Array(n);
+  for(let i=0;i<n;i++) v[i] = vOf(COLS[i]);
+  const WL=10, WB=60, MINP=0.6, res=[];
+  for(let x=WL; x<n-WL; x++){
+    let mx=true, mn=true;
+    for(let k=1;k<=WL;k++){
+      if(v[x-k]>=v[x] || v[x+k]>=v[x]) mx=false;
+      if(v[x-k]<=v[x] || v[x+k]<=v[x]) mn=false;
+      if(!mx && !mn) break;
+    }
+    if(!mx && !mn) continue;
+    let lo=v[x], hi=v[x];
+    for(let k=1;k<=WB;k++){
+      if(x-k>=0){ const a=v[x-k]; if(a<lo)lo=a; if(a>hi)hi=a; }
+      if(x+k<n){ const b=v[x+k]; if(b<lo)lo=b; if(b>hi)hi=b; }
+    }
+    if((mx ? v[x]-lo : hi-v[x]) >= MINP){
+      // refine on raw (unsmoothed) medians so sharp tips are not blunted
+      let bx=x;
+      for(let k=-6;k<=6;k++){
+        const j=x+k;
+        if(j<0||j>=n) continue;
+        const rv=vOf(COLS_RAW[j]), bv=vOf(COLS_RAW[bx]);
+        if(mx ? rv>bv : rv<bv) bx=j;
+      }
+      res.push({x: X0+bx, value: Math.round(vOf(COLS_RAW[bx])*100)/100, type: mx?'peak':'trough'});
+    }
+  }
+  return res;
+}
+
+peaksBtn.addEventListener('click', async () => {
+  peaksBtn.disabled = true;
+  const old = peaksBtn.textContent;
+  peaksBtn.textContent = 'Analyzing\u2026';
+  try{
+    await ensureAnalysis();
+    const ex = findExtrema();
+    let n = 0;
+    ex.forEach(p => {
+      let i = Math.round((p.x-X0)/(X1-X0)*(N-1));
+      i = Math.max(0, Math.min(N-1, i));
+      if(Math.abs(DATA[i].value - p.value) > 1e-9){ DATA[i].value = p.value; n++; }
+      paint(i);
+    });
+    const c = changedCount();
+    countEl.textContent = c ? c + ' point' + (c>1?'s':'') + ' adjusted' : '';
+    readout.textContent = ex.length + ' extrema found (' +
+      ex.filter(e=>e.type==='peak').length + ' peaks, ' +
+      ex.filter(e=>e.type==='trough').length + ' troughs), ' + n + ' dots updated.';
+  } finally {
+    peaksBtn.disabled = false;
+    peaksBtn.textContent = old;
+  }
+});
+
+async function setFrequency(mode){
+  if(mode === FREQ) return;
+  const btn = document.querySelector('#freqs button[data-f="'+mode+'"]');
+  btn.disabled = true;
+  try{
+    await ensureAnalysis();
+    if(mode === 'monthly'){
+      N = MONTHLY.length;
+      DATA = MONTHLY.map(d => ({...d}));
+    } else {
+      const t0 = D0MS, t1 = D1MS, dates = [];
+      if(mode === 'yearly'){
+        for(let y=Y0; y<=Y1; y++) dates.push(Date.UTC(y,0,1));
+      } else {
+        const step = mode === 'daily' ? 1 : 7;
+        const nd = Math.floor((t1-t0)/864e5/step)+1;
+        for(let i=0;i<nd;i++) dates.push(t0+i*step*864e5);
+      }
+      DATA = dates.map(t => {
+        const x = X0 + (t-t0)/(t1-t0)*(X1-X0);
+        return {date: new Date(t).toISOString().slice(0,10),
+                value: Math.round(vOf(colAt(x))*100)/100};
+      });
+      N = DATA.length;
+    }
+    BASE = DATA.map(d => d.value);
+    FREQ = mode;
+    buildDots();
+    document.querySelectorAll('#freqs button').forEach(b => b.classList.toggle('on', b.dataset.f === mode));
+  } finally { btn.disabled = false; }
+}
+document.querySelectorAll('#freqs button').forEach(b =>
+  b.addEventListener('click', () => setFrequency(b.dataset.f)));
+
+document.getElementById('dl').addEventListener('click', () => {
+  const csv = 'date,pct_change_yoy\n' + DATA.map(d => d.date + ',' + d.value.toFixed(2)).join('\n') + '\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = CSV_PREFIX + FREQ + '_corrected.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById('reset').addEventListener('click', () => {
+  DATA.forEach((d,i) => { d.value = BASE[i]; paint(i); });
+  countEl.textContent = '';
+  readout.textContent = 'Reset to sampled values (' + FREQ + ').';
+});
+
+buildDots();
+</script>
+</body>
+</html>
