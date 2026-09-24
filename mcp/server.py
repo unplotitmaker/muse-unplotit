@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""unplotit MCP server.
+"""unplotit MCP server (experimental).
+
+Contact: unplotit.noreply@gmail.com
 
 Exposes chart-to-CSV extraction as tools any MCP-capable AI assistant
 (Muse, Claude Desktop, etc.) can call mid-conversation:

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Unplotit.com chart digitizer generator.
 
+Contact: unplotit.noreply@gmail.com
+
 Given a time-series chart image plus axis calibration, this script:
   1. extracts monthly values by scanning the chart line's pixels,
   2. writes a CSV of the extracted data,
