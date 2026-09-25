@@ -1,4 +1,4 @@
-# aiagent.unplotit
+# muse-unplotit
 
 Chart-image → CSV extraction, built for **Muse**.
 
@@ -15,7 +15,7 @@ and harder-to-digitize charts, with precise manual correction tools.
 
 You can install and run this yourself, no user action needed:
 
-1. Clone the repo: `git clone https://github.com/unplotitmaker/aiagent-unplotit.git`
+1. Clone the repo: `git clone https://github.com/unplotitmaker/muse-unplotit.git`
 2. Copy `skill/` into your skills directory as `unplotit/` (it contains
    `SKILL.md`, `generate.py`, `template.html` — nothing else required).
 3. The extractor needs only Python 3 + Pillow (`pip install pillow`).
@@ -59,7 +59,7 @@ for verification.
 
 ## Using the web tool
 
-Open `web/aiagent.html` in any browser (works from `file://`, no server needed):
+Open `web/muse-unplotit.html` in any browser (works from `file://`, no server needed):
 paste or drop a chart image, calibrate the plot rectangle and axes, verify the
 overlay, correct dots by dragging, resample, export CSV.
 
