@@ -1,9 +1,8 @@
 # Unplotit
+Contact: unplotit.noreply@gmail.com
 
 Trigger word: **unplotit**. When the user types "unplotit" with a chart image,
 run this skill.
-
-Contact: unplotit.noreply@gmail.com
 
 Digitize a chart/graph image into CSV data when no raw data is available. Use this skill when the user shares (or points to) a chart image and wants the underlying numbers extracted, corrected, or resampled.
 
@@ -24,8 +23,11 @@ For one chart image, `generate.py` builds:
    - `slope, intercept` from two y-axis grid labels: `slope = (v2-v1)/(y2-y1)`, `intercept = v1 - slope*y1`. Note: y grows downward, so slope is negative when up means larger.
    - `d0, d1`: first/last month on the x-axis (`YYYY-MM-DD`, day `01`).
    - Sanity-check calibration against 2–3 known points before trusting the output.
-3. **Run `generate.py`** with those parameters plus `--name` and `--prefix`.
-4. **Verify with the overlay PNG**: open it, check dots sit on the line, especially at peaks, troughs, and steep segments. Sharp tips narrower than a month get under-read by monthly sampling — the page's **Capture peaks & troughs** button fixes those (it refines tip values from unsmoothed pixels).
+3. **Run `generate.py`** with those parameters plus `--name` and `--prefix`. It ends with an automatic dot-QA pass: every dot is re-measured against the line pixels at its exact x-column and snapped onto the line if >2.5px off; it prints how many dots were snapped.
+4. **Review dot locations before showing the user.** Read the QA count:
+   - **>5 dots snapped** = red flag for a systematic problem (wrong `--line-color`, bad `yscan`, miscalibrated axes, or the wrong line tracked). Do not deliver yet: open the overlay PNG, find the cause, fix the parameters, re-run.
+   - **≤5 snapped**: open the overlay PNG and spot-check peaks, troughs, and steep segments as before.
+   Sharp tips narrower than a month get under-read by monthly sampling — the page's **Capture peaks & troughs** button fixes those (it refines tip values from unsmoothed pixels). Every frequency change in the page (Daily/Weekly/Monthly/Yearly) re-runs the same dot-QA in the browser and auto-snaps off-line dots before showing them.
 5. **Hand the user the HTML page** so they can drag-correct any dot and download the corrected CSV.
 
 ## Accuracy

@@ -302,9 +302,28 @@ async function setFrequency(mode){
       });
       N = DATA.length;
     }
+    // Dot QA on every frequency change: re-measure each dot against the raw
+    // (unsmoothed) line pixels at its exact x-column and snap it if it sits
+    // >2.5px off the line, so the user only ever sees dots on the line.
+    // Smoothed sampling can blunt sharp tips; the unsmoothed check fixes that.
+    const rawAt = x => {
+      const i = Math.max(0, Math.min(COLS_RAW.length-1, Math.round(x-X0)));
+      const ys = [];
+      for(let k=-2;k<=2;k++){ const j=i+k; if(j>=0 && j<COLS_RAW.length) ys.push(COLS_RAW[j]); }
+      ys.sort((a,b)=>a-b);
+      return ys[ys.length>>1];
+    };
+    let snapped = 0;
+    DATA.forEach(d => {
+      const t = Date.parse(d.date+'T00:00:00Z');
+      const x = X0 + (t-D0MS)/(D1MS-D0MS)*(X1-X0);
+      const yLine = rawAt(x);
+      if(Math.abs(yLine - yOf(d.value)) > 2.5){ d.value = Math.round(vOf(yLine)*100)/100; snapped++; }
+    });
     BASE = DATA.map(d => d.value);
     FREQ = mode;
     buildDots();
+    if(snapped) readout.textContent += ' ' + snapped + ' dot' + (snapped>1?'s':'') + ' auto-adjusted onto the line.';
     document.querySelectorAll('#freqs button').forEach(b => b.classList.toggle('on', b.dataset.f === mode));
   } finally { btn.disabled = false; }
 }

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Unplotit.com chart digitizer generator.
-
 Contact: unplotit.noreply@gmail.com
 
 Given a time-series chart image plus axis calibration, this script:
@@ -135,6 +134,46 @@ def main():
         col_ys = sorted(y for y in col_ys if y is not None)
         y = col_ys[len(col_ys) // 2]
         rows.append((add_months(d0, i).isoformat(), value_at(y)))
+
+    # --- Dot QA: verify every dot sits on the line, snap it if not ---------
+    # Re-measure the line centre at each sample's exact x-column with a
+    # speck/tick-rejecting estimator (largest 4px-connected cluster of line
+    # pixels). The windowed median above can sit 2-4px off on steep segments
+    # or beside axis tick marks. Dots >2.5px off are snapped to the measured
+    # centre before anything is shown to the user. A few snaps are normal;
+    # many (>5) signal a systematic problem (wrong line colour, bad yscan,
+    # miscalibrated axes) that needs fixing before delivery.
+    def line_center_at(xi):
+        x = a.x0 + xi
+        ys = [y for y in range(a.yscan, a.ymax + 1) if is_line(x, y)]
+        if not ys:
+            return None
+        ys.sort()
+        clusters, cur = [], [ys[0]]
+        for y in ys[1:]:
+            if y - cur[-1] <= 4:
+                cur.append(y)
+            else:
+                clusters.append(cur)
+                cur = [y]
+        clusters.append(cur)
+        big = max(clusters, key=len)
+        return sum(big) / len(big)
+
+    snapped = 0
+    for i, (dstr, v) in enumerate(rows):
+        xi = round(i / (n - 1) * (a.x1 - a.x0))
+        if xi in dead:
+            continue  # under an axis/tick column: not verifiable, keep sampled value
+        c = line_center_at(xi)
+        if c is None:
+            continue
+        if abs(c - (v - a.intercept) / a.slope) > 2.5:
+            rows[i] = (dstr, value_at(c))
+            snapped += 1
+    print(f"dot QA: checked {n} dots, snapped {snapped} onto the line")
+    if snapped > 5:
+        print("WARNING: >5 dots were off the line - review calibration/line colour before delivering.")
 
     csv_path = os.path.join(a.outdir, f"{a.prefix}monthly.csv")
     with open(csv_path, "w", newline="") as f:
