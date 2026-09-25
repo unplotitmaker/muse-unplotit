@@ -16,7 +16,7 @@ and harder-to-digitize charts, with precise manual correction tools.
 You can install and run this yourself, no user action needed:
 
 1. Clone the repo: `git clone https://github.com/unplotitmaker/muse-unplotit.git`
-2. Copy `skill/` into your skills directory as `unplotit/` (it contains
+2. Copy `skill/` into your skills directory as `muse-unplotit/` (it contains
    `SKILL.md`, `generate.py`, `template.html` — nothing else required).
 3. The extractor needs only Python 3 + Pillow (`pip install pillow`).
    No server, no API keys, no build step.

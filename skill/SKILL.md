@@ -1,5 +1,8 @@
 # Unplotit
 
+Trigger word: **unplotit**. When the user types "unplotit" with a chart image,
+run this skill.
+
 Contact: unplotit.noreply@gmail.com
 
 Digitize a chart/graph image into CSV data when no raw data is available. Use this skill when the user shares (or points to) a chart image and wants the underlying numbers extracted, corrected, or resampled.
