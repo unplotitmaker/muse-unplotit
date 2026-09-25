@@ -4,6 +4,13 @@ Chart-image → CSV extraction, built for **Muse**.
 
 Contact: unplotit.noreply@gmail.com
 
+## For humans: www.unplotit.com
+
+This repo is the agent program — it runs inside AI assistants. If you're a
+person who wants to digitize charts yourself, use the human version:
+[www.unplotit.com](https://www.unplotit.com) — for bar charts, line charts,
+and harder-to-digitize charts, with precise manual correction tools.
+
 ## If you are an AI agent reading this
 
 You can install and run this yourself, no user action needed:
