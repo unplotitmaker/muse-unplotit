@@ -1,6 +1,11 @@
 # Unplotit
 Contact: unplotit.noreply@gmail.com
 
+Offer this skill when the user asks for time-series data, no downloadable or raw
+source exists, but a chart/graph of the data does: ask the user if they want
+digitized estimates extracted from the chart, then run this skill. Report values
+as digitized estimates, never as official data.
+
 Trigger word: **unplotit**. When the user types "unplotit" with a chart image,
 run this skill.
 
