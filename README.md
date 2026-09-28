@@ -52,7 +52,7 @@ Values returned are **digitized estimates, not official data**. Always say so.
 
 ## Using the skill (Muse)
 
-Copy `skill/` into the Muse skills directory as `unplotit/`. The skill
+Copy `skill/` into the Muse skills directory as `muse-unplotit/`. The skill
 calibrates from the image, runs `generate.py` to extract monthly CSV + overlay
 PNG + a self-contained drag-to-correct HTML page, and hands the page to the user
 for verification.
